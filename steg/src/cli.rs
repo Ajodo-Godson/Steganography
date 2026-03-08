@@ -1,2 +1,2 @@
-// The CLI entry point and high-level orchestrator)
+// Argument parsing (encode vs decode commands)
     
