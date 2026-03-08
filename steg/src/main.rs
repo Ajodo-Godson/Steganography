@@ -22,6 +22,11 @@ fn main() {
 
     assert_eq!(plaintext.to_vec(), decrypted);
 
+    println!("Encryption and decryption successful!");
+    println!("-----------------------------------");
+    println!("-----------------------------------");
+
+
     // Testing the transforms
     let test_signal = vec![1.0, 2.0, 3.0, 4.0];
     let dct_result = transform::forward_dct(&test_signal);
