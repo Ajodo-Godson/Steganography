@@ -23,8 +23,14 @@ fn main() {
     assert_eq!(plaintext.to_vec(), decrypted);
 
     // Testing the transforms
-    transform::demo_transform();
-    transform::demo_inverse_transform();
+    let test_signal = vec![1.0, 2.0, 3.0, 4.0];
+    let dct_result = transform::forward_dct(&test_signal);
+    let idct_result = transform::inverse_dct(&dct_result);
+    
+    println!("Original signal: {:?}", test_signal);
+    println!("DCT result: {:?}", dct_result);
+    println!("IDCT result: {:?}", idct_result);
+    assert_eq!(test_signal, idct_result);
 
 
 
