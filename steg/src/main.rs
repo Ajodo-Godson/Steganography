@@ -1,5 +1,6 @@
 mod scripts;
 use scripts::crypto;
+use scripts::transform;
 
 
 fn main() {
@@ -20,4 +21,11 @@ fn main() {
     println!("Decrypted text: {}", String::from_utf8_lossy(&decrypted));
 
     assert_eq!(plaintext.to_vec(), decrypted);
+
+    // Testing the transforms
+    transform::demo_transform();
+    transform::demo_inverse_transform();
+
+
+
 }
