@@ -1,5 +1,5 @@
-pub mod crypto;
-
+mod scripts;
+use scripts::crypto;
 
 
 fn main() {
@@ -12,10 +12,12 @@ fn main() {
     // Decrypt the ciphertext
     let decrypted = crypto::decrypt_with_password(&encrypted, password).unwrap();
 
-    print("Plain password: {}", password);
-    print("Plaintext: {}", String::from_utf8_lossy(plaintext));
-    print("Ciphertext (hex): {}", hex::encode(&encrypted.ciphertext));
-    print("Decrypted text: {}", String::from_utf8_lossy(&decrypted));
+    println!("Salt (hex): {}", hex::encode(&encrypted.salt));
+    println!("Nonce (hex): {}", hex::encode(&encrypted.nonce));
+    println!("Plain password: {}", password);
+    println!("Plaintext: {}", String::from_utf8_lossy(plaintext));
+    println!("Ciphertext (hex): {}", hex::encode(&encrypted.ciphertext));
+    println!("Decrypted text: {}", String::from_utf8_lossy(&decrypted));
 
     assert_eq!(plaintext.to_vec(), decrypted);
 }
