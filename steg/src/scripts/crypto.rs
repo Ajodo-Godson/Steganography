@@ -59,32 +59,66 @@ pub fn decrypt_aes_gcm(
     cipher.decrypt(Nonce::from_slice(nonce), ciphertext)
 }
 
-pub struct EncryptedData {
-    pub ciphertext: Vec<u8>,
-    pub salt: [u8; SALT_LEN],
-    pub nonce: [u8; NONCE_LEN],
-}
+// We want to return an encrypted payload (vector) instead of raw encrypted data. 
+// Nothing much is changing, just the packaging. 
 
-pub fn encrypt_with_password(
-    plaintext: &[u8],
-    password: &str,
-) -> Result<EncryptedData, aes_gcm::Error> {
+pub fn encrypt_payload(payload: &[u8], password: &str) -> Result<Vec<u8>, aes_gcm::Error> {
     let salt = generate_salt();
     let nonce = generate_nonce();
     let key = derive_key(password, &salt);
-    let ciphertext = encrypt_aes_gcm(plaintext, &key, &nonce)?;
+    let ciphertext = encrypt_aes_gcm(payload, &key, &nonce)?;
 
-    Ok(EncryptedData {
-        ciphertext,
-        salt,
-        nonce,
-    })
+    let mut packed = Vec::with_capacity(SALT_LEN + NONCE_LEN + ciphertext.len());
+    packed.extend_from_slice(&salt);
+    packed.extend_from_slice(&nonce);
+    packed.extend_from_slice(&ciphertext);
+    Ok(packed)
 }
 
-pub fn decrypt_with_password(
-    encrypted: &EncryptedData,
-    password: &str,
-) -> Result<Vec<u8>, aes_gcm::Error> {
-    let key = derive_key(password, &encrypted.salt);
-    decrypt_aes_gcm(&encrypted.ciphertext, &key, &encrypted.nonce)
+pub fn decrypt_payload(packed: &[u8], password: &str) -> Result<Vec<u8>, aes_gcm::Error> {
+    if packed.len() < SALT_LEN + NONCE_LEN {
+        return Err(aes_gcm::Error); // Not enough data
+    }
+    let salt_end = SALT_LEN;
+    let nonce_end = SALT_LEN + NONCE_LEN;
+
+    let mut salt = [0u8; SALT_LEN]; // from our encrypt function,
+    // we have the salt first (so we extract from pos 0 to SALT_LEN)
+    salt.copy_from_slice(&packed[0..salt_end]);
+    let mut nonce = [0u8; NONCE_LEN]; // Similarly for nonce
+    nonce.copy_from_slice(&packed[salt_end..nonce_end]);
+    let ciphertext = &packed[nonce_end..]; // And then ciphertext
+
+    let key = derive_key(password, &salt);
+    decrypt_aes_gcm(ciphertext, &key, &nonce)
 }
+
+// pub struct EncryptedData {
+//     pub ciphertext: Vec<u8>,
+//     pub salt: [u8; SALT_LEN],
+//     pub nonce: [u8; NONCE_LEN],
+// }
+
+// pub fn encrypt_with_password(
+//     plaintext: &[u8],
+//     password: &str,
+// ) -> Result<EncryptedData, aes_gcm::Error> {
+//     let salt = generate_salt();
+//     let nonce = generate_nonce();
+//     let key = derive_key(password, &salt);
+//     let ciphertext = encrypt_aes_gcm(plaintext, &key, &nonce)?;
+
+//     Ok(EncryptedData {
+//         ciphertext,
+//         salt,
+//         nonce,
+//     })
+// }
+
+// pub fn decrypt_with_password(
+//     encrypted: &EncryptedData,
+//     password: &str,
+// ) -> Result<Vec<u8>, aes_gcm::Error> {
+//     let key = derive_key(password, &encrypted.salt);
+//     decrypt_aes_gcm(&encrypted.ciphertext, &key, &encrypted.nonce)
+// }
