@@ -1,6 +1,8 @@
 mod scripts;
 use scripts::crypto;
 use scripts::transform;
+use ndarray::Array2;
+
 
 fn approx_eq_vec(vec1: &[f32], vec2: &[f32], epsilon: f32) -> bool {
     if vec1.len() != vec2.len() {
@@ -11,6 +13,19 @@ fn approx_eq_vec(vec1: &[f32], vec2: &[f32], epsilon: f32) -> bool {
             return false;
         }
     }
+    true
+}
+fn approx_eq_array2(a: &Array2<f32>, b: &Array2<f32>, epsilon: f32) -> bool {
+    if a.dim() != b.dim() {
+        return false;
+    }
+
+    for ((row, col), value) in a.indexed_iter() {
+        if (*value - b[(row, col)]).abs() > epsilon {
+            return false;
+        }
+    }
+
     true
 }
 
@@ -53,8 +68,31 @@ fn main() {
     println!("DCT result: {:?}", dct_result);
     println!("IDCT result: {:?}", idct_result);
     assert_eq!(approx_eq_vec(&test_signal, &idct_result, 1e-5), true);
-    
 
 
+    println!("-----------------------------------");
 
+    let block = Array2::from_shape_vec(
+        (8, 8),
+        vec![
+            1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0,
+            2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0,
+            3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0,
+            4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0,
+            5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0,
+            6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0,
+            7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0,
+            8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0,
+        ],
+    )
+    .unwrap();
+
+    let dct_block = transform::forward_dct_2d_block(&block);
+    let restored_block = transform::inverse_dct_2d_block(&dct_block);
+
+    println!("Original block:\n{:?}", block);
+    println!("DCT block:\n{:?}", dct_block);
+    println!("Restored block:\n{:?}", restored_block);
+
+    assert!(approx_eq_array2(&block, &restored_block, 1e-3));
 }
