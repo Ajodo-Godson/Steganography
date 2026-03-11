@@ -40,9 +40,7 @@ fn main() {
     assert_eq!(plaintext.to_vec(), decrypted);
     println!("Encryption and decryption successful!");
 
-
-    println!("Encryption and decryption successful!");
-    println!("-----------------------------------");
+    
     println!("-----------------------------------");
 
 
