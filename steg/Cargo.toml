@@ -11,7 +11,7 @@ pbkdf2 = "0.12"
 sha2 = "0.10"
 rustdct = "0.7.1"
 ndarray = "0.15"
-
+image = "0.25"
 
 
 
