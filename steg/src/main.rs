@@ -1,6 +1,7 @@
 mod scripts;
 use scripts::crypto;
 use scripts::transform;
+use scripts::image_ops;
 use ndarray::Array2;
 
 
@@ -95,4 +96,21 @@ fn main() {
     println!("Restored block:\n{:?}", restored_block);
 
     assert!(approx_eq_array2(&block, &restored_block, 1e-3));
+
+
+    let img = image_ops::load_image("data/cat.jpg").unwrap();
+    let gray = image_ops::extract_grayscale(&img);
+    let matrix = image_ops::gray_image_to_matrix(&gray);
+    let (height, width) = matrix.dim();
+
+    println!("Image size: {}x{}", width, height);
+
+    gray.save("output/cat_gray.png").unwrap();
+    println!("Saved grayscale image to output/cat_gray.png");
+
+    let matrix = image_ops::gray_image_to_matrix(&gray);
+
+    // let rebuilt = image_ops::merge_blocks(&blocks, height, width);
+    // assert!(approx_eq_array2(&matrix, &rebuilt, 1e-5));
 }
+
