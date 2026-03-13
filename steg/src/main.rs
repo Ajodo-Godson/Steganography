@@ -105,6 +105,14 @@ fn main() {
 
     println!("Image size: {}x{}", width, height);
 
+    let blocks = image_ops::split_into_blocks(&matrix);
+    println!("Number of blocks: {}", blocks.len()); 
+    println!("Block size: {}x{}", image_ops::BLOCK_SIZE, image_ops::BLOCK_SIZE);
+    
+
+
+    
+
     gray.save("output/cat_gray.png").unwrap();
     println!("Saved grayscale image to output/cat_gray.png");
 
