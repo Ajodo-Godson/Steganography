@@ -1,60 +1,51 @@
-// The core logic: odd/even bit-flipping in mid-frequencies
-
 use ndarray::Array2;
 
+use crate::scripts::bitstream::{bits_to_bytes, bytes_to_bits};
 use crate::scripts::transform::{forward_dct_2d_block, inverse_dct_2d_block};
 
-const EMBED_POS: (usize, usize) = (3, 4);
-const MIN_MAGNITUDE: i32 = 2;
+const HEADER_LEN_BITS: usize = 32;
+const EMBED_POS: (usize, usize) = (4, 3);
+const MIN_STRENGTH: f32 = 25.0;
 
-fn adjust_to_min_magnitude(coeff: i32) -> i32 {
-    if coeff == 0 {
-        return MIN_MAGNITUDE;
-    }
-
-    if coeff.abs() >= MIN_MAGNITUDE {
-        coeff
-    } else if coeff.is_negative() {
-        -MIN_MAGNITUDE
-    } else {
-        MIN_MAGNITUDE
-    }
+fn encode_length(len: usize) -> Result<Vec<bool>, String> {
+    let value = u32::try_from(len).map_err(|_| "Payload too large to encode".to_string())?;
+    Ok((0..HEADER_LEN_BITS)
+        .rev()
+        .map(|shift| ((value >> shift) & 1) == 1)
+        .collect())
 }
 
-fn matches_bit(coeff: i32, bit: bool) -> bool {
-    let is_even = coeff.rem_euclid(2) == 0;
-    if bit { is_even } else { !is_even }
-}
-
-fn force_parity(value: f32, bit: bool) -> f32 {
-    let base = adjust_to_min_magnitude(value.round() as i32);
-
-    if matches_bit(base, bit) {
-        return base as f32;
+fn decode_length(bits: &[bool]) -> Result<usize, String> {
+    if bits.len() != HEADER_LEN_BITS {
+        return Err(format!(
+            "Invalid header length: expected {}, got {}",
+            HEADER_LEN_BITS,
+            bits.len()
+        ));
     }
 
-    let candidates = [base - 1, base + 1];
-    let mut best = candidates[0];
-    let mut best_score = i32::MAX;
-
-    for candidate in candidates {
-        let candidate = adjust_to_min_magnitude(candidate);
-
-        if matches_bit(candidate, bit) {
-            let score = (candidate - base).abs();
-            if score < best_score {
-                best = candidate;
-                best_score = score;
-            }
-        }
+    let mut value = 0u32;
+    for &bit in bits {
+        value = (value << 1) | u32::from(bit);
     }
 
-    best as f32
+    Ok(value as usize)
 }
 
-fn bit_from_coeff(value: f32) -> bool {
-    let coeff = value.round() as i32;
-    coeff.rem_euclid(2) == 0
+fn set_bit_in_block(block: &Array2<f32>, bit: bool) -> Array2<f32> {
+    let mut freq = forward_dct_2d_block(block);
+    let (row, col) = EMBED_POS;
+
+    let magnitude = freq[(row, col)].abs().max(MIN_STRENGTH);
+    freq[(row, col)] = if bit { magnitude } else { -magnitude };
+
+    inverse_dct_2d_block(&freq)
+}
+
+fn get_bit_from_block(block: &Array2<f32>) -> bool {
+    let freq = forward_dct_2d_block(block);
+    let (row, col) = EMBED_POS;
+    freq[(row, col)] >= 0.0
 }
 
 pub fn embed_bits_in_blocks(
@@ -63,7 +54,7 @@ pub fn embed_bits_in_blocks(
 ) -> Result<Vec<Array2<f32>>, String> {
     if bits.len() > blocks.len() {
         return Err(format!(
-            "Not enough blocks: need {}, have {}",
+            "Not enough blocks to embed bits: need {}, have {}",
             bits.len(),
             blocks.len()
         ));
@@ -73,15 +64,7 @@ pub fn embed_bits_in_blocks(
 
     for (index, block) in blocks.iter().enumerate() {
         if index < bits.len() {
-            let bit = bits[index];
-            let mut freq_block = forward_dct_2d_block(block);
-            let (row, col) = EMBED_POS;
-
-            let original = freq_block[(row, col)];
-            freq_block[(row, col)] = force_parity(original, bit);
-
-            let spatial_block = inverse_dct_2d_block(&freq_block);
-            output.push(spatial_block);
+            output.push(set_bit_in_block(block, bits[index]));
         } else {
             output.push(block.clone());
         }
@@ -96,19 +79,67 @@ pub fn extract_bits_from_blocks(
 ) -> Result<Vec<bool>, String> {
     if bit_count > blocks.len() {
         return Err(format!(
-            "Not enough blocks: need {}, have {}",
+            "Not enough blocks to read bits: need {}, have {}",
             bit_count,
             blocks.len()
         ));
     }
 
-    let mut bits = Vec::with_capacity(bit_count);
+    Ok(blocks
+        .iter()
+        .take(bit_count)
+        .map(get_bit_from_block)
+        .collect())
+}
 
-    for block in blocks.iter().take(bit_count) {
-        let freq_block = forward_dct_2d_block(block);
-        let (row, col) = EMBED_POS;
-        bits.push(bit_from_coeff(freq_block[(row, col)]));
+pub fn embed_payload_in_blocks(
+    blocks: &[Array2<f32>],
+    payload: &[u8],
+) -> Result<Vec<Array2<f32>>, String> {
+    let mut bits = encode_length(payload.len())?;
+    bits.extend(bytes_to_bits(payload));
+
+    if bits.len() > blocks.len() {
+        return Err(format!(
+            "Not enough blocks to embed payload: need {}, have {}",
+            bits.len(),
+            blocks.len()
+        ));
     }
 
-    Ok(bits)
+    embed_bits_in_blocks(blocks, &bits)
+}
+
+pub fn extract_payload_from_blocks(blocks: &[Array2<f32>]) -> Result<Vec<u8>, String> {
+    if blocks.len() < HEADER_LEN_BITS {
+        return Err(format!(
+            "Not enough blocks to read header: need at least {}, have {}",
+            HEADER_LEN_BITS,
+            blocks.len()
+        ));
+    }
+
+    let header_bits = extract_bits_from_blocks(blocks, HEADER_LEN_BITS)?;
+    let payload_len = decode_length(&header_bits)?;
+
+    let payload_bit_count = payload_len
+        .checked_mul(8)
+        .ok_or_else(|| "Payload size overflow".to_string())?;
+
+    let total_bits = HEADER_LEN_BITS
+        .checked_add(payload_bit_count)
+        .ok_or_else(|| "Total bit count overflow".to_string())?;
+
+    if total_bits > blocks.len() {
+        return Err(format!(
+            "Not enough blocks to read payload: need {}, have {}",
+            total_bits,
+            blocks.len()
+        ));
+    }
+
+    let all_bits = extract_bits_from_blocks(blocks, total_bits)?;
+    let payload_bits = &all_bits[HEADER_LEN_BITS..];
+
+    Ok(bits_to_bytes(payload_bits))
 }
