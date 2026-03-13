@@ -108,7 +108,10 @@ fn main() {
     let blocks = image_ops::split_into_blocks(&matrix);
     println!("Number of blocks: {}", blocks.len()); 
     println!("Block size: {}x{}", image_ops::BLOCK_SIZE, image_ops::BLOCK_SIZE);
-    
+
+    let rebuilt = image_ops::merge_blocks(&blocks, height, width);
+    assert!(approx_eq_array2(&matrix, &rebuilt, 1e-5));
+
 
 
     
@@ -116,9 +119,8 @@ fn main() {
     gray.save("output/cat_gray.png").unwrap();
     println!("Saved grayscale image to output/cat_gray.png");
 
-    let matrix = image_ops::gray_image_to_matrix(&gray);
 
-    // let rebuilt = image_ops::merge_blocks(&blocks, height, width);
-    // assert!(approx_eq_array2(&matrix, &rebuilt, 1e-5));
+
+
 }
 
