@@ -65,3 +65,22 @@ pub fn split_into_blocks(matrix: &Array2<f32>) -> Vec<Array2<f32>> {
 
     blocks
 }
+
+pub fn merge_blocks(blocks: &[Array2<f32>], height: usize, width: usize) -> Array2<f32> {
+    let padded_height = height.div_ceil(BLOCK_SIZE) * BLOCK_SIZE;
+    let padded_width = width.div_ceil(BLOCK_SIZE) * BLOCK_SIZE;
+    let mut padded = Array2::<f32>::zeros((padded_height, padded_width));
+
+    let mut block_index = 0;
+    for y in (0..padded_height).step_by(BLOCK_SIZE) {
+        for x in (0..padded_width).step_by(BLOCK_SIZE) {
+            if block_index < blocks.len() {
+                let block = &blocks[block_index];
+                padded.slice_mut(s![y..y + BLOCK_SIZE, x..x + BLOCK_SIZE]).assign(block);
+                block_index += 1;
+            }
+        }
+    }
+
+    padded.slice(s![..height, ..width]).to_owned()
+}
