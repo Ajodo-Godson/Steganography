@@ -3,6 +3,7 @@ use scripts::crypto;
 use scripts::transform;
 use scripts::image_ops;
 use ndarray::Array2;
+use scripts::bitstream;
 
 
 fn approx_eq_vec(vec1: &[f32], vec2: &[f32], epsilon: f32) -> bool {
@@ -38,20 +39,30 @@ fn main() {
     let password = "super_secret_password";
     let plaintext = b"Hello, world!";
 
-    let encrypted = scripts::crypto::encrypt_payload(plaintext, password).unwrap();
+    let encrypted = crypto::encrypt_payload(plaintext, password).unwrap();
+    let bits = bitstream::bytes_to_bits(&encrypted);
 
     let salt = &encrypted[0..SALT_LEN];
     let nonce = &encrypted[SALT_LEN..SALT_LEN + NONCE_LEN];
     let ciphertext = &encrypted[SALT_LEN + NONCE_LEN..];
 
-    println!("Salt (hex): {}", hex::encode(salt));
-    println!("Nonce (hex): {}", hex::encode(nonce));
-    println!("Plain password: {}", password);
-    println!("Plaintext: {}", String::from_utf8_lossy(plaintext));
-    println!("Ciphertext (hex): {}", hex::encode(ciphertext));
+    // println!("Salt (hex): {}", hex::encode(salt));
+    // println!("Nonce (hex): {}", hex::encode(nonce));
+    // println!("Plain password: {}", password);
+    // println!("Plaintext: {}", String::from_utf8_lossy(plaintext));
+    // println!("Ciphertext (hex): {}", hex::encode(ciphertext));
+    // println!("Encrypted payload in bits: {:?}", bits);
+    println!("Salt bytes: {:?}", salt);
+    println!("Nonce bytes: {:?}", nonce);
+    println!("Ciphertext bytes: {:?}", ciphertext);
 
-    let decrypted = scripts::crypto::decrypt_payload(&encrypted, password).unwrap();
+    println!("Salt bits: {:?}", bitstream::bytes_to_bits(salt));
+    println!("Nonce bits: {:?}", bitstream::bytes_to_bits(nonce));
+    println!("Ciphertext bits: {:?}", bitstream::bytes_to_bits(ciphertext));
+
+    let decrypted = crypto::decrypt_payload(&encrypted, password).unwrap();
     println!("Decrypted text: {}", String::from_utf8_lossy(&decrypted));
+
 
     assert_eq!(plaintext.to_vec(), decrypted);
     println!("Encryption and decryption successful!");
