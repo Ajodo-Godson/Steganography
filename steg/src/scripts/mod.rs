@@ -5,4 +5,5 @@ pub mod image_ops;
 pub mod cli;
 pub mod bitstream;
 pub mod payload; 
+pub mod utils;
 
