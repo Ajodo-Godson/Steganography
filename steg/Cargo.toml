@@ -12,6 +12,6 @@ sha2 = "0.10"
 rustdct = "0.7.1"
 ndarray = "0.15"
 image = "0.25"
-
+clap = { version = "4.6.0", features = ["derive"] }
 
 
