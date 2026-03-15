@@ -1,13 +1,9 @@
-mod scripts; 
 use ndarray::Array2;
-use scripts::transform;
-use scripts::utils::{approx_eq_vec, approx_eq_array2};
 
+use crate::scripts::transform;
+use crate::scripts::utils::approx_eq_array2;
 
-const SALT_LEN: usize = 16;
-const NONCE_LEN: usize = 12;
-
-fn demo_2d_dct() {
+pub fn demo_2d_dct() {
     let block = Array2::from_shape_vec(
         (8, 8),
         vec![
