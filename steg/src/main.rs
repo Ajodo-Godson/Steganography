@@ -4,24 +4,10 @@ use clap::Parser;
 use ndarray::Array2;
 use scripts::cli::Cli;
 use scripts::{bitstream, crypto, image_ops, payload, stego, transform};
+use scripts::utils::{approx_eq_array2, approx_eq_vec};
 
 const SALT_LEN: usize = 16;
 const NONCE_LEN: usize = 12;
-
-fn approx_eq_vec(left: &[f32], right: &[f32], epsilon: f32) -> bool {
-    left.len() == right.len()
-        && left
-            .iter()
-            .zip(right.iter())
-            .all(|(a, b)| (a - b).abs() <= epsilon)
-}
-
-fn approx_eq_array2(left: &Array2<f32>, right: &Array2<f32>, epsilon: f32) -> bool {
-    left.dim() == right.dim()
-        && left
-            .indexed_iter()
-            .all(|((r, c), v)| (*v - right[(r, c)]).abs() <= epsilon)
-}
 
 fn embed_bytes_into_image(input: &str, output: &str, encrypted: &[u8]) -> Result<(), String> {
     let img = image_ops::load_image(input).map_err(|e| e.to_string())?;
@@ -54,67 +40,6 @@ fn extract_bytes_from_image(input: &str) -> Result<Vec<u8>, String> {
     let stego_blocks = image_ops::split_into_blocks(&stego_matrix);
 
     stego::extract_payload_from_blocks(&stego_blocks)
-}
-
-fn demo_crypto(password: &str, plaintext: &[u8]) -> Vec<u8> {
-    let encrypted = crypto::encrypt_payload(plaintext, password).unwrap();
-
-    let salt = &encrypted[0..SALT_LEN];
-    let nonce = &encrypted[SALT_LEN..SALT_LEN + NONCE_LEN];
-    let ciphertext = &encrypted[SALT_LEN + NONCE_LEN..];
-
-    println!("Salt bytes: {:?}", salt);
-    println!("Nonce bytes: {:?}", nonce);
-    println!("Ciphertext bytes: {:?}", ciphertext);
-    println!("Salt bits: {:?}", bitstream::bytes_to_bits(salt));
-    println!("Nonce bits: {:?}", bitstream::bytes_to_bits(nonce));
-    println!("Ciphertext bits: {:?}", bitstream::bytes_to_bits(ciphertext));
-
-    let decrypted = crypto::decrypt_payload(&encrypted, password).unwrap();
-    println!("Decrypted text: {}", String::from_utf8_lossy(&decrypted));
-
-    assert_eq!(plaintext, decrypted.as_slice());
-    println!("Encryption and decryption successful!");
-    println!("-----------------------------------");
-
-    encrypted
-}
-
-fn demo_1d_dct() {
-    let signal = vec![1.0, 2.0, 3.0, 4.0];
-    let dct = transform::forward_dct(&signal);
-    let restored = transform::inverse_dct(&dct);
-
-    println!("Original signal: {:?}", signal);
-    println!("DCT result: {:?}", dct);
-    println!("IDCT result: {:?}", restored);
-
-    assert!(approx_eq_vec(&signal, &restored, 1e-5));
-    println!("-----------------------------------");
-}
-
-fn demo_2d_dct() {
-    let block = Array2::from_shape_vec(
-        (8, 8),
-        vec![
-            1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 3.0,
-            4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 5.0,
-            6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0,
-            7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0,
-            15.0,
-        ],
-    )
-    .unwrap();
-
-    let dct_block = transform::forward_dct_2d_block(&block);
-    let restored_block = transform::inverse_dct_2d_block(&dct_block);
-
-    println!("Original block:\n{:?}", block);
-    println!("DCT block:\n{:?}", dct_block);
-    println!("Restored block:\n{:?}", restored_block);
-
-    assert!(approx_eq_array2(&block, &restored_block, 1e-3));
-    println!("-----------------------------------");
 }
 
 fn demo_image_and_stego(password: &str, encrypted: &[u8]) {
