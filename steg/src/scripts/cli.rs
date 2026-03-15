@@ -10,36 +10,70 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
+    /// Run transform/crypto/stego demo
+    Demo,
+
     /// Hide plaintext inside an image
     Embed {
-        /// Input cover image path
-        #[arg(short, long)]
+        /// Input cover image
+        #[arg(short = 'i', long)]
         input: String,
 
-        /// Output stego image path
-        #[arg(short, long)]
+        /// Output stego image (use .png)
+        #[arg(short = 'o', long)]
         output: String,
 
-        /// Password for encryption
-        #[arg(short, long)]
+        /// Encryption password
+        #[arg(short = 'p', long)]
         password: String,
 
-        /// Plaintext to embed
-        #[arg(short, long)]
+        /// Message to hide
+        #[arg(short = 'm', long)]
         message: String,
     },
 
-    /// Extract and decrypt plaintext from a stego image
+    /// Extract plaintext from a stego image
     Extract {
-        /// Input stego image path
-        #[arg(short, long)]
+        /// Input stego image
+        #[arg(short = 'i', long)]
         input: String,
 
-        /// Password for decryption
-        #[arg(short, long)]
+        /// Encryption password
+        #[arg(short = 'p', long)]
         password: String,
     },
 
-    /// Run transform/crypto self-check demos
-    Demo,
+    /// Hide a file (e.g. butterfly.png) inside an image
+    EmbedFile {
+        /// Input cover image
+        #[arg(short = 'i', long)]
+        input: String,
+
+        /// Output stego image (use .png)
+        #[arg(short = 'o', long)]
+        output: String,
+
+        /// Encryption password
+        #[arg(short = 'p', long)]
+        password: String,
+
+        /// File to hide
+        #[arg(short = 'f', long)]
+        secret_file: String,
+    },
+
+    /// Extract hidden file from a stego image
+    ExtractFile {
+        /// Input stego image
+        #[arg(short = 'i', long)]
+        input: String,
+
+        /// Encryption password
+        #[arg(short = 'p', long)]
+        password: String,
+
+        /// Output file path (optional). If omitted, embedded filename is used.
+        #[arg(short = 'o', long)]
+        output: Option<String>,
+    },
 }
