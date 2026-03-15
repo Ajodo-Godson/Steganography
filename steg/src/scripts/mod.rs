@@ -4,4 +4,5 @@ pub mod crypto;
 pub mod image_ops;
 pub mod cli;
 pub mod bitstream;
+pub mod payload; 
 
