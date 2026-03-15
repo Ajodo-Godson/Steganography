@@ -1,11 +1,9 @@
-mod scripts; 
-use ndarray::Array2;
-use scripts::{bitstream, crypto, image_ops, payload, stego, transform};
+use crate::scripts::{bitstream, crypto};
 
 const SALT_LEN: usize = 16;
 const NONCE_LEN: usize = 12;
 
-fn demo_crypto(password: &str, plaintext: &[u8]) -> Vec<u8> {
+pub fn demo_crypto(password: &str, plaintext: &[u8]) -> Vec<u8> {
     let encrypted = crypto::encrypt_payload(plaintext, password).unwrap();
 
     let salt = &encrypted[0..SALT_LEN];
