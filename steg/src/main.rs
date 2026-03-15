@@ -1,10 +1,9 @@
 mod scripts;
 
-use ndarray::Array2;
-use scripts::{bitstream, crypto, image_ops, stego, transform};
-use scripts::cli::Cli;
 use clap::Parser;
-
+use ndarray::Array2;
+use scripts::cli::Cli;
+use scripts::{bitstream, crypto, image_ops, stego, transform};
 
 const SALT_LEN: usize = 16;
 const NONCE_LEN: usize = 12;
@@ -66,14 +65,11 @@ fn demo_2d_dct() {
     let block = Array2::from_shape_vec(
         (8, 8),
         vec![
-            1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0,
-            2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0,
-            3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0,
-            4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0,
-            5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0,
-            6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0,
-            7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0,
-            8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0,
+            1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 3.0,
+            4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 5.0,
+            6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0,
+            7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0,
+            15.0,
         ],
     )
     .unwrap();
@@ -90,6 +86,8 @@ fn demo_2d_dct() {
 }
 
 fn demo_image_and_stego(password: &str, encrypted: &[u8]) {
+    std::fs::create_dir_all("output").unwrap();
+
     let img = image_ops::load_image("data/cat.jpg").unwrap();
     let gray = image_ops::extract_grayscale(&img);
     let matrix = image_ops::gray_image_to_matrix(&gray);
@@ -99,11 +97,7 @@ fn demo_image_and_stego(password: &str, encrypted: &[u8]) {
 
     let blocks = image_ops::split_into_blocks(&matrix);
     println!("Number of blocks: {}", blocks.len());
-    println!(
-        "Block size: {}x{}",
-        image_ops::BLOCK_SIZE,
-        image_ops::BLOCK_SIZE
-    );
+    println!("Block size: {}x{}", image_ops::BLOCK_SIZE, image_ops::BLOCK_SIZE);
 
     let rebuilt = image_ops::merge_blocks(&blocks, height, width);
     assert!(approx_eq_array2(&matrix, &rebuilt, 1e-5));
@@ -112,10 +106,15 @@ fn demo_image_and_stego(password: &str, encrypted: &[u8]) {
     println!("Saved grayscale image to output/cat_gray.png");
 
     let embedded_blocks = stego::embed_payload_in_blocks(&blocks, encrypted).unwrap();
+
     let embedded_matrix = image_ops::merge_blocks(&embedded_blocks, height, width);
     let embedded_image = image_ops::matrix_to_gray_image(&embedded_matrix);
-    embedded_image.save("output/cat_stego.png").unwrap();
 
+
+    embedded_image.save("output/cat_stego.png").unwrap();
+    println!("Saved stego image to output/cat_stego.png");
+
+   
     let stego_img = image_ops::load_image("output/cat_stego.png").unwrap();
     let stego_gray = image_ops::extract_grayscale(&stego_img);
     let stego_matrix = image_ops::gray_image_to_matrix(&stego_gray);
@@ -128,16 +127,6 @@ fn demo_image_and_stego(password: &str, encrypted: &[u8]) {
     assert_eq!(decrypted, b"Hello, world!");
     println!("Stego round-trip successful");
 }
-
-// fn main() {
-//     let password = "super_secret_password";
-//     let plaintext = b"Hello, world!";
-
-//     let encrypted = demo_crypto(password, plaintext);
-//     demo_1d_dct();
-//     demo_2d_dct();
-//     demo_image_and_stego(password, &encrypted);
-// }
 
 fn main() {
     let cli = Cli::parse();
@@ -169,11 +158,23 @@ fn main() {
             let encrypted =
                 crypto::encrypt_payload(message.as_bytes(), &password).expect("Encryption failed");
 
+            let bits_needed = 32 + encrypted.len() * 8;
+            if bits_needed > blocks.len() {
+                panic!(
+                    "Payload too large for image capacity: need {} bits, have {}",
+                    bits_needed,
+                    blocks.len()
+                );
+            }
+
             let embedded_blocks =
                 stego::embed_payload_in_blocks(&blocks, &encrypted).expect("Embedding failed");
 
+            
             let embedded_matrix = image_ops::merge_blocks(&embedded_blocks, height, width);
             let embedded_image = image_ops::matrix_to_gray_image(&embedded_matrix);
+
+            
             embedded_image
                 .save(&output)
                 .expect("Failed to save output image");
@@ -186,6 +187,7 @@ fn main() {
             let stego_matrix = image_ops::gray_image_to_matrix(&stego_gray);
             let stego_blocks = image_ops::split_into_blocks(&stego_matrix);
 
+            
             let encrypted =
                 stego::extract_payload_from_blocks(&stego_blocks).expect("Extraction failed");
 
