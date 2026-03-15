@@ -2,6 +2,9 @@ mod scripts;
 
 use ndarray::Array2;
 use scripts::{bitstream, crypto, image_ops, stego, transform};
+use scripts::cli::Cli;
+use clap::Parser;
+
 
 const SALT_LEN: usize = 16;
 const NONCE_LEN: usize = 12;
@@ -126,12 +129,70 @@ fn demo_image_and_stego(password: &str, encrypted: &[u8]) {
     println!("Stego round-trip successful");
 }
 
-fn main() {
-    let password = "super_secret_password";
-    let plaintext = b"Hello, world!";
+// fn main() {
+//     let password = "super_secret_password";
+//     let plaintext = b"Hello, world!";
 
-    let encrypted = demo_crypto(password, plaintext);
-    demo_1d_dct();
-    demo_2d_dct();
-    demo_image_and_stego(password, &encrypted);
+//     let encrypted = demo_crypto(password, plaintext);
+//     demo_1d_dct();
+//     demo_2d_dct();
+//     demo_image_and_stego(password, &encrypted);
+// }
+
+fn main() {
+    let cli = Cli::parse();
+
+    match cli.command {
+        scripts::cli::Commands::Demo => {
+            let password = "super_secret_password";
+            let plaintext = b"Hello, world!";
+
+            let encrypted = demo_crypto(password, plaintext);
+            demo_1d_dct();
+            demo_2d_dct();
+            demo_image_and_stego(password, &encrypted);
+        }
+        scripts::cli::Commands::Embed {
+            input,
+            output,
+            password,
+            message,
+        } => {
+            std::fs::create_dir_all("output").ok();
+
+            let img = image_ops::load_image(&input).expect("Failed to load input image");
+            let gray = image_ops::extract_grayscale(&img);
+            let matrix = image_ops::gray_image_to_matrix(&gray);
+            let (height, width) = matrix.dim();
+            let blocks = image_ops::split_into_blocks(&matrix);
+
+            let encrypted =
+                crypto::encrypt_payload(message.as_bytes(), &password).expect("Encryption failed");
+
+            let embedded_blocks =
+                stego::embed_payload_in_blocks(&blocks, &encrypted).expect("Embedding failed");
+
+            let embedded_matrix = image_ops::merge_blocks(&embedded_blocks, height, width);
+            let embedded_image = image_ops::matrix_to_gray_image(&embedded_matrix);
+            embedded_image
+                .save(&output)
+                .expect("Failed to save output image");
+
+            println!("Embed successful: {}", output);
+        }
+        scripts::cli::Commands::Extract { input, password } => {
+            let stego_img = image_ops::load_image(&input).expect("Failed to load stego image");
+            let stego_gray = image_ops::extract_grayscale(&stego_img);
+            let stego_matrix = image_ops::gray_image_to_matrix(&stego_gray);
+            let stego_blocks = image_ops::split_into_blocks(&stego_matrix);
+
+            let encrypted =
+                stego::extract_payload_from_blocks(&stego_blocks).expect("Extraction failed");
+
+            let decrypted =
+                crypto::decrypt_payload(&encrypted, &password).expect("Decryption failed");
+
+            println!("{}", String::from_utf8_lossy(&decrypted));
+        }
+    }
 }
