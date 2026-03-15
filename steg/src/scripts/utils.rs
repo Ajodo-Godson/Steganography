@@ -24,12 +24,23 @@ pub fn embed_bytes_into_image(input: &str, output: &str, encrypted: &[u8]) -> Re
     let (height, width) = matrix.dim();
     let blocks = image_ops::split_into_blocks(&matrix);
 
+    let available_bits = stego::capacity_bits(blocks.len());
     let bits_needed = 32 + encrypted.len() * 8;
-    if bits_needed > blocks.len() {
+    let max_payload_bytes = stego::capacity_payload_bytes(blocks.len());
+
+    println!("Image: {}x{}", width, height);
+    println!("Blocks: {}", blocks.len());
+    println!("Bits/block: {}", stego::bits_per_block());
+    println!(
+        "Capacity: {} bits (~{} bytes payload)",
+        available_bits, max_payload_bytes
+    );
+    println!("Required: {} bits", bits_needed);
+
+    if bits_needed > available_bits {
         return Err(format!(
-            "Payload too large for cover image: need {} bits, have {}",
-            bits_needed,
-            blocks.len()
+            "Payload too large for cover image: need {} bits, have {} bits",
+            bits_needed, available_bits
         ));
     }
 

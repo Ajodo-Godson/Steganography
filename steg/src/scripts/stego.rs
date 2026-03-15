@@ -4,12 +4,10 @@ use crate::scripts::bitstream::{bits_to_bytes, bytes_to_bits};
 use crate::scripts::transform::{forward_dct_2d_block, inverse_dct_2d_block};
 
 const HEADER_LEN_BITS: usize = 32;
-const MIN_STRENGTH: f32 = 18.0;
+const MIN_STRENGTH: f32 = 60.0;
 
 // Multi-coefficient embedding coordinates (mid-frequency zone)
-const SAFE_COORDS: &[(usize, usize)] = &[
-    (1, 2), (2, 1), (2, 2), (1, 3), (3, 1), (2, 3), (3, 2), (1, 4), (4, 1),
-];
+const SAFE_COORDS: &[(usize, usize)] = &[(1, 2)];
 
 fn force_bit(value: f32, bit: bool) -> f32 {
     let mag = value.abs().max(MIN_STRENGTH);
