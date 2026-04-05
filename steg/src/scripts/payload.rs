@@ -42,8 +42,8 @@ fn read_u32_be(input: &[u8], offset: &mut usize) -> Result<u32, String> {
 
 pub fn encode_text(text: &str) -> Result<Vec<u8>, String> {
     let text_bytes = text.as_bytes();
-    let text_len = u32::try_from(text_bytes.len())
-        .map_err(|_| "Text too large (max 4 GiB-1)".to_string())?;
+    let text_len =
+        u32::try_from(text_bytes.len()).map_err(|_| "Text too large (max 4 GiB-1)".to_string())?;
 
     let mut out = Vec::with_capacity(5 + 1 + 4 + text_bytes.len());
     out.extend_from_slice(MAGIC);
@@ -55,8 +55,8 @@ pub fn encode_text(text: &str) -> Result<Vec<u8>, String> {
 
 pub fn encode_file(name: &str, bytes: &[u8]) -> Result<Vec<u8>, String> {
     let name_bytes = name.as_bytes();
-    let name_len =
-        u16::try_from(name_bytes.len()).map_err(|_| "File name too long (max 65535)".to_string())?;
+    let name_len = u16::try_from(name_bytes.len())
+        .map_err(|_| "File name too long (max 65535)".to_string())?;
     let file_len =
         u32::try_from(bytes.len()).map_err(|_| "File too large (max 4 GiB-1)".to_string())?;
 

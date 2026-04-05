@@ -15,7 +15,10 @@ pub fn demo_crypto(password: &str, plaintext: &[u8]) -> Vec<u8> {
     println!("Ciphertext bytes: {:?}", ciphertext);
     println!("Salt bits: {:?}", bitstream::bytes_to_bits(salt));
     println!("Nonce bits: {:?}", bitstream::bytes_to_bits(nonce));
-    println!("Ciphertext bits: {:?}", bitstream::bytes_to_bits(ciphertext));
+    println!(
+        "Ciphertext bits: {:?}",
+        bitstream::bytes_to_bits(ciphertext)
+    );
 
     let decrypted = crypto::decrypt_payload(&encrypted, password).unwrap();
     println!("Decrypted text: {}", String::from_utf8_lossy(&decrypted));

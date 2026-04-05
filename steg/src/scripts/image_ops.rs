@@ -1,7 +1,7 @@
 // Luma/Chroma extraction, ndarray chunking, 8x8 blocks
- 
+
 use image::{DynamicImage, GrayImage, Luma};
-use ndarray::{s, Array2};
+use ndarray::{Array2, s};
 
 pub const BLOCK_SIZE: usize = 8;
 
@@ -50,7 +50,6 @@ pub fn pad_matrix_to_block_size(matrix: &Array2<f32>) -> Array2<f32> {
     padded
 }
 
-
 pub fn split_into_blocks(matrix: &Array2<f32>) -> Vec<Array2<f32>> {
     let padded = pad_matrix_to_block_size(matrix);
     let (height, width) = padded.dim();
@@ -58,7 +57,9 @@ pub fn split_into_blocks(matrix: &Array2<f32>) -> Vec<Array2<f32>> {
 
     for y in (0..height).step_by(BLOCK_SIZE) {
         for x in (0..width).step_by(BLOCK_SIZE) {
-            let block = padded.slice(s![y..y + BLOCK_SIZE, x..x + BLOCK_SIZE]).to_owned();
+            let block = padded
+                .slice(s![y..y + BLOCK_SIZE, x..x + BLOCK_SIZE])
+                .to_owned();
             blocks.push(block);
         }
     }
@@ -76,7 +77,9 @@ pub fn merge_blocks(blocks: &[Array2<f32>], height: usize, width: usize) -> Arra
         for x in (0..padded_width).step_by(BLOCK_SIZE) {
             if block_index < blocks.len() {
                 let block = &blocks[block_index];
-                padded.slice_mut(s![y..y + BLOCK_SIZE, x..x + BLOCK_SIZE]).assign(block);
+                padded
+                    .slice_mut(s![y..y + BLOCK_SIZE, x..x + BLOCK_SIZE])
+                    .assign(block);
                 block_index += 1;
             }
         }

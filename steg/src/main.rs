@@ -32,12 +32,14 @@ fn main() {
         } => {
             let packed = payload::encode_text(&message).expect("Failed to pack text payload");
             let encrypted = crypto::encrypt_payload(&packed, &password).expect("Encryption failed");
-            utils::embed_bytes_into_image(&input, &output, &encrypted).expect("Embedding failed");
+            utils::embed_bytes_into_image(&input, &output, &encrypted, &password)
+                .expect("Embedding failed");
             println!("Embed successful: {}", output);
         }
 
         scripts::cli::Commands::Extract { input, password } => {
-            let encrypted = utils::extract_bytes_from_image(&input).expect("Extraction failed");
+            let encrypted =
+                utils::extract_bytes_from_image(&input, &password).expect("Extraction failed");
             let packed = crypto::decrypt_payload(&encrypted, &password).expect("Decryption failed");
 
             match payload::decode_payload(&packed).expect("Invalid payload") {
@@ -62,7 +64,8 @@ fn main() {
 
             let packed = payload::encode_file(name, &bytes).expect("Failed to pack file payload");
             let encrypted = crypto::encrypt_payload(&packed, &password).expect("Encryption failed");
-            utils::embed_bytes_into_image(&input, &output, &encrypted).expect("Embedding failed");
+            utils::embed_bytes_into_image(&input, &output, &encrypted, &password)
+                .expect("Embedding failed");
 
             println!("Embed-file successful: {} -> {}", secret_file, output);
         }
@@ -72,7 +75,8 @@ fn main() {
             password,
             output,
         } => {
-            let encrypted = utils::extract_bytes_from_image(&input).expect("Extraction failed");
+            let encrypted =
+                utils::extract_bytes_from_image(&input, &password).expect("Extraction failed");
             let packed = crypto::decrypt_payload(&encrypted, &password).expect("Decryption failed");
 
             match payload::decode_payload(&packed).expect("Invalid payload") {

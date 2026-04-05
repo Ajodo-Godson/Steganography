@@ -14,13 +14,17 @@ pub fn demo_image_and_stego(password: &str, encrypted: &[u8]) {
 
     gray.save("output/cat_gray.png").unwrap();
 
-    let embedded_blocks = stego::embed_payload_in_blocks(&blocks, encrypted).unwrap();
+    let embedded_blocks = stego::embed_payload_in_blocks(&blocks, encrypted, password).unwrap();
     let embedded_matrix = image_ops::merge_blocks(&embedded_blocks, height, width);
     let embedded_image = image_ops::matrix_to_gray_image(&embedded_matrix);
     embedded_image.save("output/cat_stego.png").unwrap();
 
-    let extracted_encrypted = utils::extract_bytes_from_image("output/cat_stego.png").unwrap();
+    let extracted_encrypted =
+        utils::extract_bytes_from_image("output/cat_stego.png", password).unwrap();
     let decrypted = crypto::decrypt_payload(&extracted_encrypted, password).unwrap();
 
-    println!("Recovered stego text: {}", String::from_utf8_lossy(&decrypted));
+    println!(
+        "Recovered stego text: {}",
+        String::from_utf8_lossy(&decrypted)
+    );
 }
