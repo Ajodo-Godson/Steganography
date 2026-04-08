@@ -161,23 +161,24 @@ pub fn extract_bits_from_blocks(
 
     Ok(bits)
 }
-
 pub fn embed_payload_in_blocks(
     blocks: &[Array2<f32>],
+    usable_block_indices: &[usize],
     payload: &[u8],
     password: &str,
 ) -> Result<Vec<Array2<f32>>, String> {
     let mut bits = encode_length(payload.len())?;
     bits.extend(bytes_to_bits(payload));
-    embed_bits_in_blocks(blocks, &bits, password)
+    embed_bits_in_blocks(blocks, usable_block_indices, &bits, password)
 }
 
 pub fn extract_payload_from_blocks(
     blocks: &[Array2<f32>],
+    usable_block_indices: &[usize],
     password: &str,
 ) -> Result<Vec<u8>, String> {
-    // Read 32-bit payload length header first
-    let header_bits = extract_bits_from_blocks(blocks, HEADER_LEN_BITS, password)?;
+    let header_bits =
+        extract_bits_from_blocks(blocks, usable_block_indices, HEADER_LEN_BITS, password)?;
     let payload_len = decode_length(&header_bits)?;
 
     let payload_bits = payload_len
@@ -188,11 +189,12 @@ pub fn extract_payload_from_blocks(
         .checked_add(payload_bits)
         .ok_or_else(|| "Total bit length overflow".to_string())?;
 
-    if total_bits > capacity_bits(blocks.len()) {
+    if total_bits > capacity_bits(usable_block_indices.len()) {
         return Err("Invalid password or corrupted stego image".to_string());
     }
 
-    let all_bits = extract_bits_from_blocks(blocks, total_bits, password)?;
+    let all_bits =
+        extract_bits_from_blocks(blocks, usable_block_indices, total_bits, password)?;
     Ok(bits_to_bytes(&all_bits[HEADER_LEN_BITS..]))
 }
 
