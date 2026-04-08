@@ -28,13 +28,15 @@ pub fn embed_bytes_into_image(
     let matrix = image_ops::gray_image_to_matrix(&gray);
     let (height, width) = matrix.dim();
     let blocks = image_ops::split_into_blocks(&matrix);
+    let usable_block_indices = image_ops::embeddable_block_indices(height, width);
 
-    let available_bits = stego::capacity_bits(blocks.len());
+    let available_bits = stego::capacity_bits(usable_block_indices.len());
     let bits_needed = 32 + encrypted.len() * 8;
-    let max_payload_bytes = stego::capacity_payload_bytes(blocks.len());
+    let max_payload_bytes = stego::capacity_payload_bytes(usable_block_indices.len());
 
     println!("Image: {}x{}", width, height);
     println!("Blocks: {}", blocks.len());
+    println!("Usable blocks: {}", usable_block_indices.len());
     println!("Bits/block: {}", stego::bits_per_block());
     println!(
         "Capacity: {} bits (~{} bytes payload)",
@@ -49,7 +51,8 @@ pub fn embed_bytes_into_image(
         ));
     }
 
-    let embedded_blocks = stego::embed_payload_in_blocks(&blocks, encrypted, password)?;
+    let embedded_blocks =
+        stego::embed_payload_in_blocks(&blocks, &usable_block_indices, encrypted, password)?;
     let embedded_matrix = image_ops::merge_blocks(&embedded_blocks, height, width);
     let embedded_image = image_ops::matrix_to_gray_image(&embedded_matrix);
 
@@ -61,7 +64,9 @@ pub fn extract_bytes_from_image(input: &str, password: &str) -> Result<Vec<u8>, 
     let stego_img = image_ops::load_image(input).map_err(|e| e.to_string())?;
     let stego_gray = image_ops::extract_grayscale(&stego_img);
     let stego_matrix = image_ops::gray_image_to_matrix(&stego_gray);
+    let (height, width) = stego_matrix.dim();
     let stego_blocks = image_ops::split_into_blocks(&stego_matrix);
+    let usable_block_indices = image_ops::embeddable_block_indices(height, width);
 
-    stego::extract_payload_from_blocks(&stego_blocks, password)
+    stego::extract_payload_from_blocks(&stego_blocks, &usable_block_indices, password)
 }
