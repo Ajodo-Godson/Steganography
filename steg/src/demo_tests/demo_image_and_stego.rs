@@ -9,12 +9,15 @@ pub fn demo_image_and_stego(password: &str, encrypted: &[u8]) {
     let (height, width) = matrix.dim();
 
     let blocks = image_ops::split_into_blocks(&matrix);
+    let usable_block_indices = image_ops::embeddable_block_indices(height, width);
     let rebuilt = image_ops::merge_blocks(&blocks, height, width);
     assert!(utils::approx_eq_array2(&matrix, &rebuilt, 1e-5));
 
     gray.save("output/cat_gray.png").unwrap();
 
-    let embedded_blocks = stego::embed_payload_in_blocks(&blocks, encrypted, password).unwrap();
+    let embedded_blocks =
+        stego::embed_payload_in_blocks(&blocks, &usable_block_indices, encrypted, password)
+            .unwrap();
     let embedded_matrix = image_ops::merge_blocks(&embedded_blocks, height, width);
     let embedded_image = image_ops::matrix_to_gray_image(&embedded_matrix);
     embedded_image.save("output/cat_stego.png").unwrap();
