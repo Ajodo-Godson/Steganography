@@ -24,10 +24,9 @@ pub fn embed_bytes_into_image(
     password: &str,
 ) -> Result<(), String> {
     let img = image_ops::load_image(input).map_err(|e| e.to_string())?;
-    let gray = image_ops::extract_grayscale(&img);
-    let matrix = image_ops::gray_image_to_matrix(&gray);
-    let (height, width) = matrix.dim();
-    let blocks = image_ops::split_into_blocks(&matrix);
+    let (luma, cb, cr) = image_ops::extract_luma_and_chroma(&img);
+    let (height, width) = luma.dim();
+    let blocks = image_ops::split_into_blocks(&luma);
     let usable_block_indices = image_ops::embeddable_block_indices(height, width);
 
     let available_bits = stego::capacity_bits(usable_block_indices.len());
@@ -53,8 +52,8 @@ pub fn embed_bytes_into_image(
 
     let embedded_blocks =
         stego::embed_payload_in_blocks(&blocks, &usable_block_indices, encrypted, password)?;
-    let embedded_matrix = image_ops::merge_blocks(&embedded_blocks, height, width);
-    let embedded_image = image_ops::matrix_to_gray_image(&embedded_matrix);
+    let embedded_luma = image_ops::merge_blocks(&embedded_blocks, height, width);
+    let embedded_image = image_ops::luma_and_chroma_to_rgb_image(&embedded_luma, &cb, &cr);
 
     embedded_image.save(output).map_err(|e| e.to_string())?;
     Ok(())
@@ -62,10 +61,9 @@ pub fn embed_bytes_into_image(
 
 pub fn extract_bytes_from_image(input: &str, password: &str) -> Result<Vec<u8>, String> {
     let stego_img = image_ops::load_image(input).map_err(|e| e.to_string())?;
-    let stego_gray = image_ops::extract_grayscale(&stego_img);
-    let stego_matrix = image_ops::gray_image_to_matrix(&stego_gray);
-    let (height, width) = stego_matrix.dim();
-    let stego_blocks = image_ops::split_into_blocks(&stego_matrix);
+    let (luma, _, _) = image_ops::extract_luma_and_chroma(&stego_img);
+    let (height, width) = luma.dim();
+    let stego_blocks = image_ops::split_into_blocks(&luma);
     let usable_block_indices = image_ops::embeddable_block_indices(height, width);
 
     stego::extract_payload_from_blocks(&stego_blocks, &usable_block_indices, password)
