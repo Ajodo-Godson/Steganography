@@ -4,22 +4,23 @@ pub fn demo_image_and_stego(password: &str, encrypted: &[u8]) {
     std::fs::create_dir_all("output").unwrap();
 
     let img = image_ops::load_image("data/cat.jpg").unwrap();
-    let gray = image_ops::extract_grayscale(&img);
-    let matrix = image_ops::gray_image_to_matrix(&gray);
-    let (height, width) = matrix.dim();
+    let (luma, cb, cr) = image_ops::extract_luma_and_chroma(&img);
+    let (height, width) = luma.dim();
 
-    let blocks = image_ops::split_into_blocks(&matrix);
+    let blocks = image_ops::split_into_blocks(&luma);
     let usable_block_indices = image_ops::embeddable_block_indices(height, width);
     let rebuilt = image_ops::merge_blocks(&blocks, height, width);
-    assert!(utils::approx_eq_array2(&matrix, &rebuilt, 1e-5));
+    assert!(utils::approx_eq_array2(&luma, &rebuilt, 1e-5));
 
-    gray.save("output/cat_gray.png").unwrap();
+    image_ops::matrix_to_gray_image(&luma)
+        .save("output/cat_luma.png")
+        .unwrap();
 
     let embedded_blocks =
         stego::embed_payload_in_blocks(&blocks, &usable_block_indices, encrypted, password)
             .unwrap();
-    let embedded_matrix = image_ops::merge_blocks(&embedded_blocks, height, width);
-    let embedded_image = image_ops::matrix_to_gray_image(&embedded_matrix);
+    let embedded_luma = image_ops::merge_blocks(&embedded_blocks, height, width);
+    let embedded_image = image_ops::luma_and_chroma_to_rgb_image(&embedded_luma, &cb, &cr);
     embedded_image.save("output/cat_stego.png").unwrap();
 
     let extracted_encrypted =

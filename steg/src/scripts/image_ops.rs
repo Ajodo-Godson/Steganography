@@ -11,7 +11,6 @@ fn clamp_to_u8(value: f32) -> u8 {
     value.round().clamp(0.0, 255.0) as u8
 }
 
-
 // GrayScale Image Operations
 pub fn extract_grayscale(img: &DynamicImage) -> GrayImage {
     img.to_luma8()
@@ -44,9 +43,7 @@ pub fn matrix_to_gray_image(matrix: &Array2<f32>) -> GrayImage {
 
 // LUMA CHROMA
 
-pub fn extract_luma_and_chroma(
-    img: &DynamicImage,
-) -> (Array2<f32>, Array2<f32>, Array2<f32>) {
+pub fn extract_luma_and_chroma(img: &DynamicImage) -> (Array2<f32>, Array2<f32>, Array2<f32>) {
     let rgb = img.to_rgb8();
     let (width, height) = rgb.dimensions();
 
@@ -153,7 +150,6 @@ pub fn merge_blocks(blocks: &[Array2<f32>], height: usize, width: usize) -> Arra
     padded.slice(s![..height, ..width]).to_owned()
 }
 
-
 pub fn embeddable_block_indices(height: usize, width: usize) -> Vec<usize> {
     let padded_block_cols = width.div_ceil(BLOCK_SIZE);
     let full_block_rows = height / BLOCK_SIZE;
@@ -168,4 +164,3 @@ pub fn embeddable_block_indices(height: usize, width: usize) -> Vec<usize> {
 
     indices
 }
-

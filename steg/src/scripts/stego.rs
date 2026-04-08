@@ -1,4 +1,3 @@
-
 use ndarray::Array2;
 use rand::{SeedableRng, rngs::StdRng, seq::SliceRandom};
 use sha2::{Digest, Sha256};
@@ -133,8 +132,7 @@ pub fn extract_bits_from_blocks(
     if bit_count > cap {
         return Err(format!(
             "Not enough capacity: need {} bits, have {} bits",
-            bit_count,
-            cap
+            bit_count, cap
         ));
     }
 
@@ -193,8 +191,7 @@ pub fn extract_payload_from_blocks(
         return Err("Invalid password or corrupted stego image".to_string());
     }
 
-    let all_bits =
-        extract_bits_from_blocks(blocks, usable_block_indices, total_bits, password)?;
+    let all_bits = extract_bits_from_blocks(blocks, usable_block_indices, total_bits, password)?;
     Ok(bits_to_bytes(&all_bits[HEADER_LEN_BITS..]))
 }
 
@@ -207,11 +204,17 @@ mod tests {
         vec![Array2::from_elem((8, 8), 128.0); count]
     }
 
+    fn sample_usable_block_indices(count: usize) -> Vec<usize> {
+        (0..count).collect()
+    }
+
     #[test]
     fn shuffled_positions_are_keyed_and_stable() {
-        let left = shuffled_positions("alpha", 128);
-        let right = shuffled_positions("alpha", 128);
-        let different = shuffled_positions("beta", 128);
+        let usable_block_indices = sample_usable_block_indices(128);
+
+        let left = shuffled_positions("alpha", &usable_block_indices);
+        let right = shuffled_positions("alpha", &usable_block_indices);
+        let different = shuffled_positions("beta", &usable_block_indices);
 
         assert_eq!(left, right);
         assert_ne!(left, different);
@@ -220,10 +223,14 @@ mod tests {
     #[test]
     fn payload_round_trips_with_matching_password() {
         let blocks = sample_blocks(256);
+        let usable_block_indices = sample_usable_block_indices(blocks.len());
         let payload = b"keyed randomized embedding";
 
-        let embedded = embed_payload_in_blocks(&blocks, payload, "correct horse").unwrap();
-        let recovered = extract_payload_from_blocks(&embedded, "correct horse").unwrap();
+        let embedded =
+            embed_payload_in_blocks(&blocks, &usable_block_indices, payload, "correct horse")
+                .unwrap();
+        let recovered =
+            extract_payload_from_blocks(&embedded, &usable_block_indices, "correct horse").unwrap();
 
         assert_eq!(recovered, payload);
     }
