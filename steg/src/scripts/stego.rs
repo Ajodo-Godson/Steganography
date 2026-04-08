@@ -125,19 +125,21 @@ pub fn embed_bits_in_blocks(
 
 pub fn extract_bits_from_blocks(
     blocks: &[Array2<f32>],
+    usable_block_indices: &[usize],
     bit_count: usize,
     password: &str,
 ) -> Result<Vec<bool>, String> {
-    let cap = capacity_bits(blocks.len());
+    let cap = capacity_bits(usable_block_indices.len());
     if bit_count > cap {
         return Err(format!(
             "Not enough capacity: need {} bits, have {} bits",
-            bit_count, cap
+            bit_count,
+            cap
         ));
     }
 
     let mut positions_by_block = vec![Vec::new(); blocks.len()];
-    for (sequence_idx, (block_idx, r, c)) in shuffled_positions(password, blocks.len())
+    for (sequence_idx, (block_idx, r, c)) in shuffled_positions(password, usable_block_indices)
         .into_iter()
         .take(bit_count)
         .enumerate()
