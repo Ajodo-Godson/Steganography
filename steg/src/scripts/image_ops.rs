@@ -87,3 +87,19 @@ pub fn merge_blocks(blocks: &[Array2<f32>], height: usize, width: usize) -> Arra
 
     padded.slice(s![..height, ..width]).to_owned()
 }
+
+
+pub fn embeddable_block_indices(height: usize, width: usize) -> Vec<usize> {
+    let padded_block_cols = width.div_ceil(BLOCK_SIZE);
+    let full_block_rows = height / BLOCK_SIZE;
+    let full_block_cols = width / BLOCK_SIZE;
+
+    let mut indices = Vec::with_capacity(full_block_rows * full_block_cols);
+    for block_row in 0..full_block_rows {
+        for block_col in 0..full_block_cols {
+            indices.push(block_row * padded_block_cols + block_col);
+        }
+    }
+
+    indices
+}
