@@ -1,3 +1,4 @@
+
 use ndarray::Array2;
 use rand::{SeedableRng, rngs::StdRng, seq::SliceRandom};
 use sha2::{Digest, Sha256};
@@ -27,10 +28,13 @@ fn embedding_seed(password: &str) -> [u8; 32] {
     hasher.finalize().into()
 }
 
-fn shuffled_positions(password: &str, block_count: usize) -> Vec<(usize, usize, usize)> {
-    let mut positions = Vec::with_capacity(capacity_bits(block_count));
+fn shuffled_positions(
+    password: &str,
+    usable_block_indices: &[usize],
+) -> Vec<(usize, usize, usize)> {
+    let mut positions = Vec::with_capacity(capacity_bits(usable_block_indices.len()));
 
-    for block_idx in 0..block_count {
+    for &block_idx in usable_block_indices {
         for &(r, c) in SAFE_COORDS {
             positions.push((block_idx, r, c));
         }
@@ -79,10 +83,11 @@ fn decode_length(bits: &[bool]) -> Result<usize, String> {
 
 pub fn embed_bits_in_blocks(
     blocks: &[Array2<f32>],
+    usable_block_indices: &[usize],
     bits: &[bool],
     password: &str,
 ) -> Result<Vec<Array2<f32>>, String> {
-    let cap = capacity_bits(blocks.len());
+    let cap = capacity_bits(usable_block_indices.len());
     if bits.len() > cap {
         return Err(format!(
             "Not enough capacity: need {} bits, have {} bits",
@@ -95,7 +100,7 @@ pub fn embed_bits_in_blocks(
     for (bit, (block_idx, r, c)) in bits
         .iter()
         .copied()
-        .zip(shuffled_positions(password, blocks.len()).into_iter())
+        .zip(shuffled_positions(password, usable_block_indices).into_iter())
     {
         assignments[block_idx].push((r, c, bit));
     }
