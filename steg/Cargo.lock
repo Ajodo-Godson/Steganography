@@ -8,6 +8,7 @@ version = "0.1.0"
 dependencies = [
  "aes-gcm",
  "clap",
+ "flate2",
  "hex",
  "image",
  "ndarray",
