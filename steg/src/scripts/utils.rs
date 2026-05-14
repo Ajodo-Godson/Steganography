@@ -29,14 +29,15 @@ pub fn embed_bytes_into_image(
     let blocks = image_ops::split_into_blocks(&luma);
     let usable_block_indices = image_ops::embeddable_block_indices(height, width);
 
-    let available_bits = stego::capacity_bits(usable_block_indices.len());
-    let bits_needed = 32 + encrypted.len() * 8;
-    let max_payload_bytes = stego::capacity_payload_bytes(usable_block_indices.len());
+    let available_bits = stego::adaptive_capacity_bits(&blocks, &usable_block_indices);
+    let bits_needed = stego::payload_bits_required(encrypted.len())
+        .ok_or_else(|| "Payload bit length overflow".to_string())?;
+    let max_payload_bytes = stego::adaptive_capacity_payload_bytes(&blocks, &usable_block_indices);
 
     println!("Image: {}x{}", width, height);
     println!("Blocks: {}", blocks.len());
     println!("Usable blocks: {}", usable_block_indices.len());
-    println!("Bits/block: {}", stego::bits_per_block());
+    println!("Base bits/block: {}", stego::bits_per_block());
     println!(
         "Capacity: {} bits (~{} bytes payload)",
         available_bits, max_payload_bytes
