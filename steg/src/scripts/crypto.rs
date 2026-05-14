@@ -39,7 +39,7 @@ pub fn encrypt_aes_gcm(
     nonce: &[u8; NONCE_LEN],
 ) -> Result<Vec<u8>, aes_gcm::Error> {
     // Create AES_GCM cipher instance with the derived key
-    let cipher = Aes256Gcm::new_from_slice(key).expect("invalid AES-256 key length");
+    let cipher = Aes256Gcm::new_from_slice(key).map_err(|_| aes_gcm::Error)?;
     cipher.encrypt(Nonce::from_slice(nonce), plaintext)
 }
 
@@ -50,7 +50,7 @@ pub fn decrypt_aes_gcm(
 ) -> Result<Vec<u8>, aes_gcm::Error> {
     // on the client or decryption side, we create the same AES_GCM cipher instance
     // with the same derived key and nonce, and call the decrypt method to retrieve the original plaintext
-    let cipher = Aes256Gcm::new_from_slice(key).expect("invalid AES-256 key length");
+    let cipher = Aes256Gcm::new_from_slice(key).map_err(|_| aes_gcm::Error)?;
     cipher.decrypt(Nonce::from_slice(nonce), ciphertext)
 }
 
